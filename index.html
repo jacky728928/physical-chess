@@ -1,0 +1,1167 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>引力弹弓棋</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Roboto+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #0a0a12;
+            --bg-grid: rgba(30, 40, 60, 0.3);
+            --grid-line: rgba(80, 120, 160, 0.4);
+            --player-a: #4FC3F7;
+            --player-a-glow: rgba(79, 195, 247, 0.6);
+            --player-b: #FF7043;
+            --player-b-glow: rgba(255, 112, 67, 0.6);
+            --star: #FFD54F;
+            --star-glow: rgba(255, 213, 79, 0.8);
+            --trajectory: #80CBC4;
+            --trajectory-glow: rgba(128, 203, 196, 0.5);
+            --text-primary: #e0e8f0;
+            --text-secondary: #8090a0;
+            --panel-bg: rgba(15, 20, 35, 0.9);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Roboto Mono', monospace;
+            background: var(--bg-deep);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(79, 195, 247, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(255, 112, 67, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at 50% 50%, rgba(255, 213, 79, 0.03) 0%, transparent 40%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .stars {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            font-weight: 700;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            background: linear-gradient(135deg, var(--player-a), var(--star), var(--player-b));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            text-shadow: 0 0 40px rgba(255, 213, 79, 0.3);
+        }
+
+        .game-panel {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .board-container {
+            position: relative;
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow:
+                0 0 60px rgba(0, 0, 0, 0.5),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(80, 120, 160, 0.2);
+        }
+
+        #gameCanvas {
+            display: block;
+            border-radius: 4px;
+            cursor: crosshair;
+        }
+
+        .info-panel {
+            background: var(--panel-bg);
+            border-radius: 12px;
+            padding: 20px;
+            min-width: 220px;
+            box-shadow:
+                0 0 60px rgba(0, 0, 0, 0.5),
+                inset 0 0 30px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(80, 120, 160, 0.2);
+        }
+
+        .info-section {
+            margin-bottom: 20px;
+        }
+
+        .info-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .info-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(80, 120, 160, 0.3);
+        }
+
+        .turn-indicator {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .turn-dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            transition: all 0.3s ease;
+        }
+
+        .turn-dot.player-a {
+            background: var(--player-a);
+            box-shadow: 0 0 12px var(--player-a-glow);
+        }
+
+        .turn-dot.player-b {
+            background: var(--player-b);
+            box-shadow: 0 0 12px var(--player-b-glow);
+        }
+
+        .piece-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .piece-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+        }
+
+        .piece-icon {
+            font-size: 1rem;
+        }
+
+        .piece-icon.player-a {
+            color: var(--player-a);
+        }
+
+        .piece-icon.player-b {
+            color: var(--player-b);
+        }
+
+        .piece-count {
+            margin-left: auto;
+            font-weight: 500;
+        }
+
+        .btn {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 0.85rem;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            transition: all 0.2s ease;
+            width: 100%;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--player-a), #29b6f6);
+            color: var(--bg-deep);
+            font-weight: 700;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 20px var(--player-a-glow);
+        }
+
+        .btn-secondary {
+            background: rgba(80, 120, 160, 0.3);
+            color: var(--text-primary);
+            border: 1px solid rgba(80, 120, 160, 0.4);
+        }
+
+        .btn-secondary:hover {
+            background: rgba(80, 120, 160, 0.5);
+        }
+
+        .btn + .btn {
+            margin-top: 10px;
+        }
+
+        .status-message {
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            min-height: 60px;
+        }
+
+        .velocity-display {
+            font-size: 1rem;
+            color: var(--trajectory);
+            font-weight: 500;
+            margin-top: 8px;
+        }
+
+        .instructions {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+        }
+
+        .instructions strong {
+            color: var(--text-primary);
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.7; transform: scale(1.1); }
+        }
+
+        .game-over-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 18, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        .game-over-overlay.visible {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .game-over-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3rem;
+            margin-bottom: 20px;
+            text-transform: uppercase;
+            letter-spacing: 6px;
+        }
+
+        .game-over-title.player-a {
+            color: var(--player-a);
+            text-shadow: 0 0 40px var(--player-a-glow);
+        }
+
+        .game-over-title.player-b {
+            color: var(--player-b);
+            text-shadow: 0 0 40px var(--player-b-glow);
+        }
+
+        .game-over-subtitle {
+            font-size: 1.2rem;
+            color: var(--text-secondary);
+            margin-bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <canvas class="stars" id="starsCanvas"></canvas>
+
+    <div class="container">
+        <h1>引力弹弓棋</h1>
+
+        <div class="game-panel">
+            <div class="board-container">
+                <canvas id="gameCanvas" width="540" height="540"></canvas>
+            </div>
+
+            <div class="info-panel">
+                <div class="info-section">
+                    <div class="info-title">当前回合</div>
+                    <div class="turn-indicator">
+                        <div class="turn-dot player-a" id="turnDot"></div>
+                        <span id="turnText">蓝方回合</span>
+                    </div>
+                    <div class="velocity-display" id="velocityDisplay"></div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-title">棋子数量</div>
+                    <div class="piece-list">
+                        <div class="piece-item">
+                            <span class="piece-icon player-a">★●·</span>
+                            <span>蓝方</span>
+                            <span class="piece-count" id="playerACount">5</span>
+                        </div>
+                        <div class="piece-item">
+                            <span class="piece-icon player-b">★●·</span>
+                            <span>红方</span>
+                            <span class="piece-count" id="playerBCount">5</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-title">游戏状态</div>
+                    <div class="status-message" id="statusMessage">
+                        布子阶段：请在第1行（蓝）和第9行（红）放置棋子
+                    </div>
+                </div>
+
+                <div class="info-section">
+                    <div class="btn btn-primary" id="startBtn">开始游戏</div>
+                    <div class="btn btn-secondary" id="resetBtn">重置</div>
+                </div>
+
+                <div class="info-section">
+                    <div class="info-title">操作说明</div>
+                    <div class="instructions">
+                        <strong>布子：</strong>点击空格子放置棋子<br>
+                        <strong>移动：</strong>点击己方棋子拖拽设置速度<br>
+                        <strong>弹弓：</strong>利用恒星和对方棋子引力加速
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-over-overlay" id="gameOverOverlay">
+        <div class="game-over-title" id="gameOverTitle">蓝方胜利</div>
+        <div class="game-over-subtitle" id="gameOverSubtitle">成功吃光对方所有棋子</div>
+        <button class="btn btn-primary" onclick="resetGame()" style="width: auto;">再来一局</button>
+    </div>
+
+    <script>
+        // ========== CONSTANTS ==========
+        const GRID_SIZE = 9;
+        const CELL_SIZE = 60;
+        const PADDING = 0;
+        const G = 0.5;
+        const DT = 0.1;
+        const MAX_STEPS = 200;
+        const R_MIN = 1.5;
+        const STAR_MASS = 20;
+        const VELOCITY_MAX = 3;
+        const VELOCITY_SLINGSHOT = 5;
+
+        // ========== GAME STATE ==========
+        let gameState = {
+            phase: 'setup', // 'setup', 'play', 'animating', 'end'
+            currentPlayer: 'A',
+            turn: 1,
+            selectedPiece: null,
+            pieces: [],
+            star: { x: 5, y: 5, mass: STAR_MASS },
+            trajectory: [],
+            isDragging: false,
+            dragStart: null,
+            dragEnd: null,
+            winner: null
+        };
+
+        // ========== DOM ELEMENTS ==========
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const starsCanvas = document.getElementById('starsCanvas');
+        const starsCtx = starsCanvas.getContext('2d');
+        const turnDot = document.getElementById('turnDot');
+        const turnText = document.getElementById('turnText');
+        const velocityDisplay = document.getElementById('velocityDisplay');
+        const statusMessage = document.getElementById('statusMessage');
+        const playerACount = document.getElementById('playerACount');
+        const playerBCount = document.getElementById('playerBCount');
+        const startBtn = document.getElementById('startBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const gameOverOverlay = document.getElementById('gameOverOverlay');
+        const gameOverTitle = document.getElementById('gameOverTitle');
+        const gameOverSubtitle = document.getElementById('gameOverSubtitle');
+
+        // ========== INITIALIZATION ==========
+        function init() {
+            resizeStarsCanvas();
+            createStars();
+            setupInitialPieces();
+            render();
+        }
+
+        function resizeStarsCanvas() {
+            starsCanvas.width = window.innerWidth;
+            starsCanvas.height = window.innerHeight;
+        }
+
+        function createStars() {
+            const stars = [];
+            for (let i = 0; i < 200; i++) {
+                stars.push({
+                    x: Math.random() * starsCanvas.width,
+                    y: Math.random() * starsCanvas.height,
+                    radius: Math.random() * 1.5,
+                    alpha: Math.random() * 0.8 + 0.2,
+                    twinkleSpeed: Math.random() * 0.02 + 0.005
+                });
+            }
+            animateStars(stars);
+        }
+
+        function animateStars(stars) {
+            function draw() {
+                starsCtx.fillStyle = '#0a0a12';
+                starsCtx.fillRect(0, 0, starsCanvas.width, starsCanvas.height);
+
+                stars.forEach(star => {
+                    star.alpha += star.twinkleSpeed;
+                    if (star.alpha > 1 || star.alpha < 0.2) {
+                        star.twinkleSpeed *= -1;
+                    }
+                    starsCtx.beginPath();
+                    starsCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                    starsCtx.fillStyle = `rgba(255, 255, 255, ${star.alpha})`;
+                    starsCtx.fill();
+                });
+
+                requestAnimationFrame(draw);
+            }
+            draw();
+        }
+
+        function setupInitialPieces() {
+            gameState.pieces = [];
+            // Add star marker for reference
+        }
+
+        // ========== PIECE TYPES ==========
+        const PIECE_TYPES = [
+            { symbol: '★', mass: 5, radius: 22 },
+            { symbol: '●', mass: 3, radius: 16 },
+            { symbol: '●', mass: 3, radius: 16 },
+            { symbol: '·', mass: 1, radius: 10 },
+            { symbol: '·', mass: 1, radius: 10 }
+        ];
+
+        // ========== RENDERING ==========
+        function render() {
+            ctx.fillStyle = '#0a0a12';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            drawGrid();
+            drawStar();
+            drawPieces();
+            drawTrajectory();
+
+            if (gameState.isDragging && gameState.dragStart && gameState.dragEnd) {
+                drawVelocityVector();
+            }
+
+            updateUI();
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = 'rgba(80, 120, 160, 0.3)';
+            ctx.lineWidth = 1;
+
+            for (let i = 1; i <= GRID_SIZE; i++) {
+                const pos = gridToPixel(i, 0.5);
+                const posEnd = gridToPixel(i, GRID_SIZE + 0.5);
+
+                ctx.beginPath();
+                ctx.moveTo(pos.x, pos.y);
+                ctx.lineTo(pos.x, posEnd.y);
+                ctx.stroke();
+
+                const posH = gridToPixel(0.5, i);
+                const posHEnd = gridToPixel(GRID_SIZE + 0.5, i);
+
+                ctx.beginPath();
+                ctx.moveTo(posH.x, posH.y);
+                ctx.lineTo(posHEnd.x, posHEnd.y);
+                ctx.stroke();
+            }
+
+            // Row labels
+            ctx.fillStyle = 'rgba(80, 120, 160, 0.5)';
+            ctx.font = '10px Roboto Mono';
+            for (let i = 1; i <= GRID_SIZE; i++) {
+                const pos = gridToPixel(0.2, i);
+                ctx.fillText(i.toString(), pos.x, pos.y);
+            }
+        }
+
+        function drawStar() {
+            const center = gridToPixel(gameState.star.x, gameState.star.y);
+
+            // Outer glow
+            const gradient = ctx.createRadialGradient(
+                center.x, center.y, 0,
+                center.x, center.y, 50
+            );
+            gradient.addColorStop(0, 'rgba(255, 213, 79, 0.8)');
+            gradient.addColorStop(0.3, 'rgba(255, 213, 79, 0.3)');
+            gradient.addColorStop(0.6, 'rgba(255, 213, 79, 0.1)');
+            gradient.addColorStop(1, 'transparent');
+
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 50, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+
+            // Inner core
+            const coreGradient = ctx.createRadialGradient(
+                center.x - 5, center.y - 5, 0,
+                center.x, center.y, 25
+            );
+            coreGradient.addColorStop(0, '#fff');
+            coreGradient.addColorStop(0.3, '#FFD54F');
+            coreGradient.addColorStop(1, '#FF8F00');
+
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 25, 0, Math.PI * 2);
+            ctx.fillStyle = coreGradient;
+            ctx.fill();
+
+            // Label
+            ctx.fillStyle = 'rgba(255, 213, 79, 0.8)';
+            ctx.font = 'bold 12px Orbitron';
+            ctx.textAlign = 'center';
+            ctx.fillText('★', center.x, center.y + 4);
+            ctx.textAlign = 'left';
+
+            // Roche limit indicator (dashed circle)
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = 'rgba(255, 213, 79, 0.2)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, R_MIN * CELL_SIZE, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
+
+        function drawPieces() {
+            gameState.pieces.forEach(piece => {
+                const pos = gridToPixel(piece.x, piece.y);
+                const type = PIECE_TYPES.find(t => t.mass === piece.mass);
+                const color = piece.owner === 'A' ? '#4FC3F7' : '#FF7043';
+                const glowColor = piece.owner === 'A' ? 'rgba(79, 195, 247, 0.6)' : 'rgba(255, 112, 67, 0.6)';
+
+                // Glow
+                const glowGradient = ctx.createRadialGradient(
+                    pos.x, pos.y, 0,
+                    pos.x, pos.y, type.radius * 1.5
+                );
+                glowGradient.addColorStop(0, glowColor);
+                glowGradient.addColorStop(1, 'transparent');
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, type.radius * 1.5, 0, Math.PI * 2);
+                ctx.fillStyle = glowGradient;
+                ctx.fill();
+
+                // Piece body
+                const bodyGradient = ctx.createRadialGradient(
+                    pos.x - type.radius * 0.3, pos.y - type.radius * 0.3, 0,
+                    pos.x, pos.y, type.radius
+                );
+                bodyGradient.addColorStop(0, '#fff');
+                bodyGradient.addColorStop(0.4, color);
+                bodyGradient.addColorStop(1, piece.owner === 'A' ? '#0288D1' : '#D84315');
+
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, type.radius, 0, Math.PI * 2);
+                ctx.fillStyle = bodyGradient;
+                ctx.fill();
+
+                // Symbol
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+                ctx.font = `bold ${type.radius * 0.8}px Roboto Mono`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(type.symbol, pos.x, pos.y + 1);
+                ctx.textAlign = 'left';
+                ctx.textBaseline = 'alphabetic';
+
+                // Selection ring
+                if (gameState.selectedPiece && gameState.selectedPiece.id === piece.id) {
+                    ctx.strokeStyle = '#fff';
+                    ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.arc(pos.x, pos.y, type.radius + 5, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            });
+        }
+
+        function drawTrajectory() {
+            if (gameState.trajectory.length < 2) return;
+
+            ctx.setLineDash([8, 4]);
+            ctx.lineWidth = 2;
+            ctx.lineCap = 'round';
+
+            for (let i = 1; i < gameState.trajectory.length; i++) {
+                const alpha = 1 - (i / gameState.trajectory.length) * 0.7;
+                const prev = gameState.trajectory[i - 1];
+                const curr = gameState.trajectory[i];
+
+                const prevPixel = gridToPixel(prev.x, prev.y);
+                const currPixel = gridToPixel(curr.x, curr.y);
+
+                const gradient = ctx.createLinearGradient(prevPixel.x, prevPixel.y, currPixel.x, currPixel.y);
+                gradient.addColorStop(0, `rgba(128, 203, 196, ${alpha * 0.5})`);
+                gradient.addColorStop(1, `rgba(128, 203, 196, ${alpha})`);
+
+                ctx.strokeStyle = gradient;
+                ctx.beginPath();
+                ctx.moveTo(prevPixel.x, prevPixel.y);
+                ctx.lineTo(currPixel.x, currPixel.y);
+                ctx.stroke();
+            }
+
+            // Draw end point
+            if (gameState.trajectory.length > 0) {
+                const end = gameState.trajectory[gameState.trajectory.length - 1];
+                const endPixel = gridToPixel(end.x, end.y);
+
+                ctx.beginPath();
+                ctx.arc(endPixel.x, endPixel.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = 'rgba(128, 203, 196, 0.8)';
+                ctx.fill();
+            }
+
+            ctx.setLineDash([]);
+        }
+
+        function drawVelocityVector() {
+            const startPixel = gridToPixel(gameState.dragStart.x, gameState.dragStart.y);
+            const endPixel = gameState.dragEnd;
+
+            // Line from piece center to cursor
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(startPixel.x, startPixel.y);
+            ctx.lineTo(endPixel.x, endPixel.y);
+            ctx.stroke();
+
+            // Arrow head
+            const angle = Math.atan2(endPixel.y - startPixel.y, endPixel.x - startPixel.x);
+            const arrowLength = 15;
+
+            ctx.beginPath();
+            ctx.moveTo(endPixel.x, endPixel.y);
+            ctx.lineTo(
+                endPixel.x - arrowLength * Math.cos(angle - Math.PI / 6),
+                endPixel.y - arrowLength * Math.sin(angle - Math.PI / 6)
+            );
+            ctx.moveTo(endPixel.x, endPixel.y);
+            ctx.lineTo(
+                endPixel.x - arrowLength * Math.cos(angle + Math.PI / 6),
+                endPixel.y - arrowLength * Math.sin(angle + Math.PI / 6)
+            );
+            ctx.stroke();
+        }
+
+        function gridToPixel(x, y) {
+            return {
+                x: PADDING + (x - 0.5) * CELL_SIZE,
+                y: PADDING + (y - 0.5) * CELL_SIZE
+            };
+        }
+
+        function pixelToGrid(px, py) {
+            const x = Math.round((px - PADDING) / CELL_SIZE + 0.5);
+            const y = Math.round((py - PADDING) / CELL_SIZE + 0.5);
+            return { x, y };
+        }
+
+        // ========== UI UPDATE ==========
+        function updateUI() {
+            // Turn indicator
+            turnDot.className = 'turn-dot ' + (gameState.currentPlayer === 'A' ? 'player-a' : 'player-b');
+            turnText.textContent = gameState.currentPlayer === 'A' ? '蓝方回合' : '红方回合';
+
+            // Piece counts
+            const countA = gameState.pieces.filter(p => p.owner === 'A').length;
+            const countB = gameState.pieces.filter(p => p.owner === 'B').length;
+            playerACount.textContent = countA;
+            playerBCount.textContent = countB;
+
+            // Start button
+            if (gameState.phase === 'setup') {
+                startBtn.style.display = 'block';
+                startBtn.textContent = '开始游戏';
+                startBtn.disabled = !canStartGame();
+            } else {
+                startBtn.style.display = 'none';
+            }
+        }
+
+        function canStartGame() {
+            const countA = gameState.pieces.filter(p => p.owner === 'A').length;
+            const countB = gameState.pieces.filter(p => p.owner === 'B').length;
+            return countA === 5 && countB === 5;
+        }
+
+        function setStatus(message) {
+            statusMessage.textContent = message;
+        }
+
+        // ========== INPUT HANDLING ==========
+        canvas.addEventListener('mousedown', handleMouseDown);
+        canvas.addEventListener('mousemove', handleMouseMove);
+        canvas.addEventListener('mouseup', handleMouseUp);
+        canvas.addEventListener('mouseleave', handleMouseUp);
+
+        function handleMouseDown(e) {
+            const rect = canvas.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            const grid = pixelToGrid(px, py);
+
+            if (gameState.phase === 'setup') {
+                handleSetupClick(grid);
+            } else if (gameState.phase === 'play') {
+                handlePlayClick(grid, px, py);
+            }
+        }
+
+        function handleSetupClick(grid) {
+            if (grid.x < 1 || grid.x > GRID_SIZE || grid.y < 1 || grid.y > GRID_SIZE) return;
+
+            // Check if cell is occupied
+            const existing = gameState.pieces.find(p => p.x === grid.x && p.y === grid.y);
+            if (existing) return;
+
+            // Determine player based on row
+            let owner;
+            if (grid.y === 1) owner = 'A';
+            else if (grid.y === 9) owner = 'B';
+            else {
+                setStatus('请在第1行（蓝方）或第9行（红方）放置棋子');
+                return;
+            }
+
+            // Count pieces for this player
+            const playerPieces = gameState.pieces.filter(p => p.owner === owner);
+            if (playerPieces.length >= 5) {
+                setStatus(`${owner === 'A' ? '蓝方' : '红方'}已有5枚棋子`);
+                return;
+            }
+
+            // Assign piece type based on count
+            const typeIndex = playerPieces.length;
+            const type = PIECE_TYPES[typeIndex];
+
+            gameState.pieces.push({
+                id: Date.now() + Math.random(),
+                x: grid.x,
+                y: grid.y,
+                mass: type.mass,
+                owner: owner,
+                symbol: type.symbol
+            });
+
+            setStatus(`已放置${owner === 'A' ? '蓝' : '红'}方${type.symbol}于(${grid.x}, ${grid.y})`);
+            render();
+        }
+
+        function handlePlayClick(grid, px, py) {
+            // Find clicked piece
+            const clickedPiece = gameState.pieces.find(p => {
+                const pos = gridToPixel(p.x, p.y);
+                const dist = Math.sqrt((px - pos.x) ** 2 + (py - pos.y) ** 2);
+                const type = PIECE_TYPES.find(t => t.mass === p.mass);
+                return dist <= type.radius + 5;
+            });
+
+            if (clickedPiece && clickedPiece.owner === gameState.currentPlayer) {
+                gameState.selectedPiece = clickedPiece;
+                gameState.isDragging = true;
+                const pos = gridToPixel(clickedPiece.x, clickedPiece.y);
+                gameState.dragStart = { x: clickedPiece.x, y: clickedPiece.y };
+                gameState.dragEnd = { x: px, y: py };
+                setStatus(`已选择棋子 (${clickedPiece.x}, ${clickedPiece.y})，拖拽设置速度向量`);
+                render();
+            } else {
+                gameState.selectedPiece = null;
+                render();
+            }
+        }
+
+        function handleMouseMove(e) {
+            if (!gameState.isDragging) return;
+
+            const rect = canvas.getBoundingClientRect();
+            gameState.dragEnd = {
+                x: e.clientX - rect.left,
+                y: e.clientY - rect.top
+            };
+
+            // Calculate velocity
+            const startPixel = gridToPixel(gameState.dragStart.x, gameState.dragStart.y);
+            const dx = gameState.dragEnd.x - startPixel.x;
+            const dy = gameState.dragEnd.y - startPixel.y;
+
+            // Scale: pixels to grid units
+            const vx = Math.round(dx / CELL_SIZE * 3);
+            const vy = Math.round(dy / CELL_SIZE * 3);
+            const vMag = Math.sqrt(vx * vx + vy * vy);
+
+            velocityDisplay.textContent = `v = (${vx}, ${vy}) | |v| = ${vMag}`;
+
+            // Preview trajectory
+            if (gameState.selectedPiece) {
+                const vxClamped = Math.max(-VELOCITY_MAX, Math.min(VELOCITY_MAX, vx));
+                const vyClamped = Math.max(-VELOCITY_MAX, Math.min(VELOCITY_MAX, vy));
+                simulateTrajectory(gameState.selectedPiece, vxClamped, vyClamped);
+            }
+
+            render();
+        }
+
+        function handleMouseUp(e) {
+            if (!gameState.isDragging || !gameState.selectedPiece) {
+                gameState.isDragging = false;
+                return;
+            }
+
+            const startPixel = gridToPixel(gameState.dragStart.x, gameState.dragStart.y);
+            const dx = gameState.dragEnd.x - startPixel.x;
+            const dy = gameState.dragEnd.y - startPixel.y;
+
+            const vx = Math.round(dx / CELL_SIZE * 3);
+            const vy = Math.round(dy / CELL_SIZE * 3);
+            const vMag = Math.sqrt(vx * vx + vy * vy);
+
+            if (vMag > VELOCITY_MAX) {
+                setStatus(`速度超出上限 |v| ≤ ${VELOCITY_MAX}`);
+                gameState.isDragging = false;
+                gameState.trajectory = [];
+                render();
+                return;
+            }
+
+            if (vMag < 0.3) {
+                setStatus('速度过小，请重新拖拽');
+                gameState.isDragging = false;
+                gameState.trajectory = [];
+                render();
+                return;
+            }
+
+            // Execute move
+            executeMove(gameState.selectedPiece, vx, vy);
+            gameState.isDragging = false;
+        }
+
+        // ========== PHYSICS ==========
+        function simulateTrajectory(piece, vx, vy) {
+            const trajectory = [{ x: piece.x, y: piece.y }];
+            let x = piece.x;
+            let y = piece.y;
+            let velX = vx;
+            let velY = vy;
+
+            for (let step = 0; step < MAX_STEPS; step++) {
+                // Calculate gravitational forces
+                const forces = calculateForces(x, y, piece.mass, piece.owner);
+
+                if (forces.escaped) {
+                    trajectory.push({ x, y });
+                    break;
+                }
+
+                // Update velocity
+                velX += forces.ax * DT;
+                velY += forces.ay * DT;
+
+                // Update position
+                x += velX * DT;
+                y += velY * DT;
+
+                trajectory.push({ x, y });
+
+                // Check termination
+                const roundedX = Math.round(x);
+                const roundedY = Math.round(y);
+
+                if (roundedX >= 1 && roundedX <= GRID_SIZE && roundedY >= 1 && roundedY <= GRID_SIZE) {
+                    // Check if close enough to grid point
+                    if (Math.abs(x - roundedX) < 0.15 && Math.abs(y - roundedY) < 0.15) {
+                        break;
+                    }
+                }
+
+                if (x < 0.5 || x > 9.5 || y < 0.5 || y > 9.5) {
+                    break;
+                }
+            }
+
+            // Snap to nearest grid
+            if (trajectory.length > 0) {
+                const last = trajectory[trajectory.length - 1];
+                last.x = Math.round(Math.max(1, Math.min(9, last.x)));
+                last.y = Math.round(Math.max(1, Math.min(9, last.y)));
+            }
+
+            gameState.trajectory = trajectory;
+        }
+
+        function calculateForces(x, y, mass, owner) {
+            let totalFx = 0;
+            let totalFy = 0;
+
+            // Star gravity
+            const starDx = gameState.star.x - x;
+            const starDy = gameState.star.y - y;
+            const starDist = Math.sqrt(starDx * starDx + starDy * starDy);
+
+            if (starDist < R_MIN) {
+                return { ax: 0, ay: 0, escaped: true, roshEvent: true };
+            }
+
+            const starForce = G * mass * gameState.star.mass / (starDist * starDist);
+            totalFx += starForce * starDx / starDist;
+            totalFy += starForce * starDy / starDist;
+
+            // Other pieces gravity
+            for (const piece of gameState.pieces) {
+                if (piece.owner === owner && piece.x === Math.round(x) && piece.y === Math.round(y)) {
+                    continue; // Skip self
+                }
+
+                const dx = piece.x - x;
+                const dy = piece.y - y;
+                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                if (dist < 0.1) continue;
+
+                const force = G * mass * piece.mass / (dist * dist);
+                totalFx += force * dx / dist;
+                totalFy += force * dy / dist;
+            }
+
+            return {
+                ax: totalFx / mass,
+                ay: totalFy / mass,
+                escaped: false,
+                roshEvent: false
+            };
+        }
+
+        function executeMove(piece, vx, vy) {
+            gameState.phase = 'animating';
+            setStatus('轨迹推演中...');
+
+            simulateTrajectory(piece, vx, vy);
+
+            const trajectory = [...gameState.trajectory];
+            const endPoint = trajectory[trajectory.length - 1];
+
+            // Animate trajectory drawing
+            let currentStep = 0;
+            const animSpeed = 3; // frames per point
+
+            function animate() {
+                currentStep += animSpeed;
+                gameState.trajectory = trajectory.slice(0, Math.min(currentStep, trajectory.length));
+                render();
+
+                if (currentStep < trajectory.length) {
+                    requestAnimationFrame(animate);
+                } else {
+                    // Animation complete - execute result
+                    finalizeMove(piece, endPoint);
+                }
+            }
+
+            animate();
+        }
+
+        function finalizeMove(piece, endPoint) {
+            const endX = endPoint.x;
+            const endY = endPoint.y;
+
+            // Check for rosh event (hit star)
+            const starDist = Math.sqrt((endX - gameState.star.x) ** 2 + (endY - gameState.star.y) ** 2);
+            if (starDist < R_MIN) {
+                setStatus('棋子坠入恒星被撕碎！');
+                removePiece(piece);
+            }
+            // Check for escape
+            else if (endX < 1 || endX > 9 || endY < 1 || endY > 9) {
+                setStatus('棋子逃逸出界！');
+                removePiece(piece);
+            }
+            // Check for eating enemy
+            else {
+                const enemyPiece = gameState.pieces.find(p =>
+                    p.owner !== piece.owner &&
+                    p.x === endX &&
+                    p.y === endY
+                );
+
+                if (enemyPiece) {
+                    setStatus(`吃掉敌方${enemyPiece.symbol}！(位置 ${endX}, ${endY})`);
+                    removePiece(enemyPiece);
+                } else {
+                    // Move piece to new position
+                    piece.x = endX;
+                    piece.y = endY;
+                    setStatus(`棋子落位于 (${endX}, ${endY})`);
+                }
+            }
+
+            gameState.trajectory = [];
+            gameState.selectedPiece = null;
+
+            // Check win condition
+            if (checkWinCondition()) {
+                return;
+            }
+
+            // Switch turn
+            gameState.currentPlayer = gameState.currentPlayer === 'A' ? 'B' : 'A';
+            gameState.turn++;
+
+            if (gameState.turn > 20) {
+                checkQualityWin();
+                return;
+            }
+
+            setStatus(`${gameState.currentPlayer === 'A' ? '蓝' : '红'}方回合`);
+            gameState.phase = 'play';
+            render();
+        }
+
+        function removePiece(piece) {
+            const index = gameState.pieces.indexOf(piece);
+            if (index > -1) {
+                gameState.pieces.splice(index, 1);
+            }
+        }
+
+        function checkWinCondition() {
+            const piecesA = gameState.pieces.filter(p => p.owner === 'A');
+            const piecesB = gameState.pieces.filter(p => p.owner === 'B');
+
+            if (piecesA.length === 0) {
+                endGame('B', '吃光对方所有棋子');
+                return true;
+            }
+            if (piecesB.length === 0) {
+                endGame('A', '吃光对方所有棋子');
+                return true;
+            }
+            if (gameState.turn > 20) {
+                const massA = piecesA.reduce((sum, p) => sum + p.mass, 0);
+                const massB = piecesB.reduce((sum, p) => sum + p.mass, 0);
+                if (massA > massB) {
+                    endGame('A', `残存质量优势 (${massA} vs ${massB})`);
+                } else if (massB > massA) {
+                    endGame('B', `残存质量优势 (${massB} vs ${massA})`);
+                } else {
+                    endGame('A', '质量相同，蓝方胜'); // Default
+                }
+                return true;
+            }
+            return false;
+        }
+
+        function checkQualityWin() {
+            // Already handled in checkWinCondition for turn > 20
+        }
+
+        function endGame(winner, reason) {
+            gameState.phase = 'end';
+            gameState.winner = winner;
+
+            gameOverTitle.textContent = `${winner === 'A' ? '蓝' : '红'}方胜利`;
+            gameOverTitle.className = 'game-over-title ' + (winner === 'A' ? 'player-a' : 'player-b');
+            gameOverSubtitle.textContent = reason;
+            gameOverOverlay.classList.add('visible');
+
+            setStatus(`游戏结束！${winner === 'A' ? '蓝' : '红'}方胜利 - ${reason}`);
+        }
+
+        // ========== GAME CONTROL ==========
+        startBtn.addEventListener('click', () => {
+            if (!canStartGame()) return;
+            gameState.phase = 'play';
+            setStatus('游戏开始！蓝方回合');
+            render();
+        });
+
+        resetBtn.addEventListener('click', resetGame);
+
+        function resetGame() {
+            gameState = {
+                phase: 'setup',
+                currentPlayer: 'A',
+                turn: 1,
+                selectedPiece: null,
+                pieces: [],
+                star: { x: 5, y: 5, mass: STAR_MASS },
+                trajectory: [],
+                isDragging: false,
+                dragStart: null,
+                dragEnd: null,
+                winner: null
+            };
+            gameOverOverlay.classList.remove('visible');
+            setStatus('布子阶段：请在第1行（蓝）和第9行（红）放置棋子');
+            velocityDisplay.textContent = '';
+            render();
+        }
+
+        // ========== START ==========
+        init();
+    </script>
+</body>
+</html>
