@@ -58,7 +58,7 @@
         border: 1px solid #444;
     }
 
-    .dot.black { background: #222; box-shadow: 0 0 4px rgba(255,255,255,0.2); }
+    .dot.black { background: #111; box-shadow: 0 0 4px rgba(255,255,255,0.15); border-color: #666; }
 
     .check {
         font-size: 13px;
@@ -135,7 +135,7 @@
         width: 82%;
         height: 82%;
         display: block;
-        filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.5));
+        filter: drop-shadow(1px 2px 2px rgba(0,0,0,0.45));
         cursor: default;
     }
 
@@ -258,13 +258,12 @@
     'use strict';
 
     // ============ SVG 棋子 ============
-    // 白棋：白底黑线；黑棋：黑底白/浅色线（传统西洋棋风格）
+    // 白棋：纯白底+纯黑线；黑棋：纯黑底+纯白线
     function svgPiece(piece) {
         const isWhite = piece === piece.toUpperCase();
-        const fill   = isWhite ? '#ffffff' : '#1a1a1a';
-        const stroke = '#000000';
-        // 黑棋内部装饰用浅色，白棋用深色
-        const accent = isWhite ? '#333333' : '#f0f0f0';
+        const fill   = isWhite ? '#ffffff' : '#000000';
+        const stroke = isWhite ? '#000000' : '#ffffff';
+        const accent = isWhite ? '#000000' : '#ffffff';
         const p = piece.toUpperCase();
 
         const head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">';
@@ -381,9 +380,7 @@
         return p === p.toUpperCase() ? 'w' : 'b';
     }
 
-    function inBounds(r, c) {
-        return r >= 0 && r < 8 && c >= 0 && c < 8;
-    }
+    function inBounds(r, c) { return r >= 0 && r < 8 && c >= 0 && c < 8; }
 
     function pseudoMoves(r, c) {
         const p = board[r][c];
@@ -405,7 +402,6 @@
             const dir = color === 'w' ? -1 : 1;
             const startRow = color === 'w' ? 6 : 1;
             const promoRow = color === 'w' ? 0 : 7;
-
             if (inBounds(r + dir, c) && !board[r + dir][c]) {
                 if (r + dir === promoRow) {
                     ['Q','R','B','N'].forEach(pp => moves.push({ from:[r,c], to:[r+dir,c], piece:p, captured:null, promotion: color==='w'?pp:pp.toLowerCase() }));
@@ -445,10 +441,7 @@
                 while (inBounds(nr, nc)) {
                     const target = board[nr][nc];
                     if (!target) moves.push({ from:[r,c], to:[nr,nc], piece:p, captured:null });
-                    else {
-                        if (colorOf(target) !== color) moves.push({ from:[r,c], to:[nr,nc], piece:p, captured:target });
-                        break;
-                    }
+                    else { if (colorOf(target) !== color) moves.push({ from:[r,c], to:[nr,nc], piece:p, captured:target }); break; }
                     nr += dr; nc += dc;
                 }
             }
@@ -457,7 +450,6 @@
             for (let dr = -1; dr <= 1; dr++)
                 for (let dc = -1; dc <= 1; dc++)
                     if (dr || dc) add(r + dr, c + dc);
-
             const row = color === 'w' ? 7 : 0;
             if (r === row && c === 4) {
                 const canK = color === 'w' ? castling.wK : castling.bK;
@@ -474,7 +466,6 @@
                 }
             }
         }
-
         return moves;
     }
 
@@ -482,45 +473,19 @@
         const dir = byColor === 'w' ? 1 : -1;
         for (const dc of [-1, 1]) {
             const pr = r + dir, pc = c + dc;
-            if (inBounds(pr, pc)) {
-                const p = board[pr][pc];
-                if (p && colorOf(p) === byColor && p.toUpperCase() === 'P') return true;
-            }
+            if (inBounds(pr, pc)) { const p = board[pr][pc]; if (p && colorOf(p) === byColor && p.toUpperCase() === 'P') return true; }
         }
         const kn = [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]];
-        for (const [dr, dc] of kn) {
-            const nr = r + dr, nc = c + dc;
-            if (inBounds(nr, nc)) {
-                const p = board[nr][nc];
-                if (p && colorOf(p) === byColor && p.toUpperCase() === 'N') return true;
-            }
-        }
+        for (const [dr, dc] of kn) { const nr = r + dr, nc = c + dc; if (inBounds(nr, nc)) { const p = board[nr][nc]; if (p && colorOf(p) === byColor && p.toUpperCase() === 'N') return true; } }
         const rd = [[-1,0],[1,0],[0,-1],[0,1]];
-        for (const [dr, dc] of rd) {
-            let nr = r + dr, nc = c + dc;
-            while (inBounds(nr, nc)) {
-                const p = board[nr][nc];
-                if (p) { if (colorOf(p) === byColor && (p.toUpperCase()==='R' || p.toUpperCase()==='Q')) return true; break; }
-                nr += dr; nc += dc;
-            }
-        }
+        for (const [dr, dc] of rd) { let nr = r + dr, nc = c + dc; while (inBounds(nr, nc)) { const p = board[nr][nc]; if (p) { if (colorOf(p) === byColor && (p.toUpperCase()==='R' || p.toUpperCase()==='Q')) return true; break; } nr += dr; nc += dc; } }
         const bd = [[-1,-1],[-1,1],[1,-1],[1,1]];
-        for (const [dr, dc] of bd) {
-            let nr = r + dr, nc = c + dc;
-            while (inBounds(nr, nc)) {
-                const p = board[nr][nc];
-                if (p) { if (colorOf(p) === byColor && (p.toUpperCase()==='B' || p.toUpperCase()==='Q')) return true; break; }
-                nr += dr; nc += dc;
-            }
-        }
+        for (const [dr, dc] of bd) { let nr = r + dr, nc = c + dc; while (inBounds(nr, nc)) { const p = board[nr][nc]; if (p) { if (colorOf(p) === byColor && (p.toUpperCase()==='B' || p.toUpperCase()==='Q')) return true; break; } nr += dr; nc += dc; } }
         for (let dr = -1; dr <= 1; dr++)
             for (let dc = -1; dc <= 1; dc++) {
                 if (!dr && !dc) continue;
                 const nr = r + dr, nc = c + dc;
-                if (inBounds(nr, nc)) {
-                    const p = board[nr][nc];
-                    if (p && colorOf(p) === byColor && p.toUpperCase() === 'K') return true;
-                }
+                if (inBounds(nr, nc)) { const p = board[nr][nc]; if (p && colorOf(p) === byColor && p.toUpperCase() === 'K') return true; }
             }
         return false;
     }
@@ -529,9 +494,7 @@
         for (let r = 0; r < 8; r++)
             for (let c = 0; c < 8; c++) {
                 const p = board[r][c];
-                if (p && p.toUpperCase() === 'K' && colorOf(p) === color) {
-                    return isSquareAttacked(r, c, color === 'w' ? 'b' : 'w');
-                }
+                if (p && p.toUpperCase() === 'K' && colorOf(p) === color) return isSquareAttacked(r, c, color === 'w' ? 'b' : 'w');
             }
         return false;
     }
@@ -573,35 +536,16 @@
         const [tr, tc] = m.to;
         const p = board[fr][fc];
         const color = colorOf(p);
-
         board[fr][fc] = '';
         if (m.enPassant) board[fr][tc] = '';
         board[tr][tc] = m.promotion || p;
-
         if (m.castle === 'K') { board[tr][5] = board[tr][7]; board[tr][7] = ''; }
         else if (m.castle === 'Q') { board[tr][3] = board[tr][0]; board[tr][0] = ''; }
-
-        if (p.toUpperCase() === 'K') {
-            if (color === 'w') { castling.wK = false; castling.wQ = false; }
-            else { castling.bK = false; castling.bQ = false; }
-        }
-        if (p.toUpperCase() === 'R') {
-            if (color === 'w' && fr === 7) { if (fc === 0) castling.wQ = false; if (fc === 7) castling.wK = false; }
-            if (color === 'b' && fr === 0) { if (fc === 0) castling.bQ = false; if (fc === 7) castling.bK = false; }
-        }
-        if (m.captured && m.captured.toUpperCase() === 'R') {
-            const enemy = color === 'w' ? 'b' : 'w';
-            if (enemy === 'w' && tr === 7) { if (tc === 0) castling.wQ = false; if (tc === 7) castling.wK = false; }
-            if (enemy === 'b' && tr === 0) { if (tc === 0) castling.bQ = false; if (tc === 7) castling.bK = false; }
-        }
-
-        if (m.doubleStep) enPassant = [(fr + tr) / 2, tc];
-        else enPassant = null;
-
-        if (!silent) {
-            turn = color === 'w' ? 'b' : 'w';
-            lastMove = { from: m.from, to: m.to };
-        }
+        if (p.toUpperCase() === 'K') { if (color === 'w') { castling.wK = false; castling.wQ = false; } else { castling.bK = false; castling.bQ = false; } }
+        if (p.toUpperCase() === 'R') { if (color === 'w' && fr === 7) { if (fc === 0) castling.wQ = false; if (fc === 7) castling.wK = false; } if (color === 'b' && fr === 0) { if (fc === 0) castling.bQ = false; if (fc === 7) castling.bK = false; } }
+        if (m.captured && m.captured.toUpperCase() === 'R') { const enemy = color === 'w' ? 'b' : 'w'; if (enemy === 'w' && tr === 7) { if (tc === 0) castling.wQ = false; if (tc === 7) castling.wK = false; } if (enemy === 'b' && tr === 0) { if (tc === 0) castling.bQ = false; if (tc === 7) castling.bK = false; } }
+        if (m.doubleStep) enPassant = [(fr + tr) / 2, tc]; else enPassant = null;
+        if (!silent) { turn = color === 'w' ? 'b' : 'w'; lastMove = { from: m.from, to: m.to }; }
     }
 
     function notation(m) {
@@ -626,7 +570,6 @@
     const resetBtn = document.getElementById('resetBtn');
     const promoEl = document.getElementById('promoEl');
     const promoBox = document.getElementById('promoBox');
-
     let pendingPromo = null;
 
     function render() {
@@ -635,28 +578,17 @@
             for (let c = 0; c < 8; c++) {
                 const cell = document.createElement('div');
                 cell.className = 'cell ' + ((r + c) % 2 === 0 ? 'light' : 'dark');
-
                 if (selected && selected[0] === r && selected[1] === c) cell.classList.add('selected');
-                if (lastMove && ((lastMove.from[0]===r && lastMove.from[1]===c) || (lastMove.to[0]===r && lastMove.to[1]===c))) {
-                    cell.classList.add('last');
-                }
-
+                if (lastMove && ((lastMove.from[0]===r && lastMove.from[1]===c) || (lastMove.to[0]===r && lastMove.to[1]===c))) cell.classList.add('last');
                 const vm = validMoves.find(m => m.to[0] === r && m.to[1] === c);
-                if (vm) {
-                    if (vm.captured || vm.enPassant) cell.classList.add('can-capture');
-                    else cell.classList.add('can-move');
-                }
-
+                if (vm) { if (vm.captured || vm.enPassant) cell.classList.add('can-capture'); else cell.classList.add('can-move'); }
                 if (!gameOver && inCheck(turn)) {
                     for (let rr = 0; rr < 8; rr++)
                         for (let cc = 0; cc < 8; cc++) {
                             const p = board[rr][cc];
-                            if (p && p.toUpperCase() === 'K' && colorOf(p) === turn && rr === r && cc === c) {
-                                cell.classList.add('check');
-                            }
+                            if (p && p.toUpperCase() === 'K' && colorOf(p) === turn && rr === r && cc === c) cell.classList.add('check');
                         }
                 }
-
                 const piece = board[r][c];
                 if (piece) {
                     const pieceEl = document.createElement('div');
@@ -664,18 +596,13 @@
                     pieceEl.innerHTML = svgPiece(piece);
                     cell.appendChild(pieceEl);
                 }
-
                 cell.addEventListener('click', () => onCellClick(r, c));
                 boardEl.appendChild(cell);
             }
         }
-
         turnDot.className = 'dot' + (turn === 'b' ? ' black' : '');
         turnText.textContent = turn === 'w' ? '白方' : '黑方';
-
-        if (!gameOver && inCheck(turn)) checkEl.classList.add('active');
-        else checkEl.classList.remove('active');
-
+        if (!gameOver && inCheck(turn)) checkEl.classList.add('active'); else checkEl.classList.remove('active');
         historyList.innerHTML = '';
         const pairs = [];
         for (let i = 0; i < history.length; i += 2) {
@@ -684,42 +611,19 @@
             const b = history[i+1] || '';
             pairs.push(`${num}.${w}${b ? ' ' + b : ''}`);
         }
-        pairs.forEach(p => {
-            const el = document.createElement('span');
-            el.className = 'history-entry';
-            el.textContent = p;
-            historyList.appendChild(el);
-        });
+        pairs.forEach(p => { const el = document.createElement('span'); el.className = 'history-entry'; el.textContent = p; historyList.appendChild(el); });
         historyList.scrollLeft = historyList.scrollWidth;
     }
 
     function onCellClick(r, c) {
         if (gameOver || pendingPromo) return;
-
         if (selected) {
             const m = validMoves.find(mv => mv.to[0] === r && mv.to[1] === c);
-            if (m) {
-                if (m.promotion) { showPromoDialog(m); return; }
-                doMove(m);
-                return;
-            }
-            if (board[r][c] && colorOf(board[r][c]) === turn) {
-                selected = [r, c];
-                validMoves = legalMoves(r, c);
-                render();
-                return;
-            }
-            selected = null;
-            validMoves = [];
-            render();
-            return;
+            if (m) { if (m.promotion) { showPromoDialog(m); return; } doMove(m); return; }
+            if (board[r][c] && colorOf(board[r][c]) === turn) { selected = [r, c]; validMoves = legalMoves(r, c); render(); return; }
+            selected = null; validMoves = []; render(); return;
         }
-
-        if (board[r][c] && colorOf(board[r][c]) === turn) {
-            selected = [r, c];
-            validMoves = legalMoves(r, c);
-            render();
-        }
+        if (board[r][c] && colorOf(board[r][c]) === turn) { selected = [r, c]; validMoves = legalMoves(r, c); render(); }
     }
 
     function doMove(m) {
@@ -736,8 +640,7 @@
         }
         if (gameOver) gameOverEl.classList.add('active');
         history.push(note);
-        selected = null;
-        validMoves = [];
+        selected = null; validMoves = [];
         render();
     }
 
@@ -750,21 +653,14 @@
             const btn = document.createElement('div');
             btn.className = 'promo-btn';
             btn.innerHTML = svgPiece(color === 'w' ? ch : ch.toLowerCase());
-            btn.onclick = () => {
-                m.promotion = color === 'w' ? ch : ch.toLowerCase();
-                pendingPromo = null;
-                promoEl.classList.remove('active');
-                doMove(m);
-            };
+            btn.onclick = () => { m.promotion = color === 'w' ? ch : ch.toLowerCase(); pendingPromo = null; promoEl.classList.remove('active'); doMove(m); };
             promoBox.appendChild(btn);
         });
         promoEl.classList.add('active');
     }
 
     resetBtn.addEventListener('click', () => {
-        if (!gameOver && history.length > 0) {
-            if (!confirm('重新开始？')) return;
-        }
+        if (!gameOver && history.length > 0) { if (!confirm('重新开始？')) return; }
         initBoard();
         gameOverEl.classList.remove('active');
         render();
