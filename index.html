@@ -6,34 +6,32 @@
 <title>国际象棋</title>
 <style>
 * { margin:0; padding:0; box-sizing:border-box; }
-html,body { width:100%; height:100%; background:#333; font-family:system-ui,-apple-system,sans-serif; }
-.wrap { display:flex; flex-direction:column; align-items:center; padding:10px; gap:10px; min-height:100vh; }
-.top { width:100%; max-width:500px; display:flex; justify-content:space-between; align-items:center; background:#444; padding:10px 15px; border-radius:8px; gap:10px; }
+html,body { width:100%; min-height:100%; background:#2b2b2b; font-family:system-ui,-apple-system,sans-serif; }
+.wrap { display:flex; flex-direction:column; align-items:center; padding:10px; gap:10px; }
+.top { width:520px; max-width:95vw; display:flex; justify-content:space-between; align-items:center; background:#444; padding:10px 15px; border-radius:8px; gap:10px; }
 .turn { display:flex; align-items:center; gap:8px; color:#fff; font-weight:600; }
-.dot { width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid #666; }
+.dot { width:14px; height:14px; border-radius:50%; background:#fff; border:2px solid #666; flex:none; }
 .dot.black { background:#000; }
-.reset { background:#555; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-weight:600; cursor:pointer; }
-.toggle-btn { background:#555; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-weight:600; cursor:pointer; }
-.toggle-btn.on { background:#4a7a4a; }
-.board { width:min(92vw,500px); aspect-ratio:1/1; display:grid; grid-template-columns:repeat(8,1fr); border:3px solid #5d4037; border-radius:4px; overflow:hidden; }
-.cell { display:flex; align-items:center; justify-content:center; position:relative; }
+.btns { display:flex; gap:8px; }
+.btn { background:#555; color:#fff; border:none; padding:8px 14px; border-radius:6px; font-weight:600; cursor:pointer; font-size:13px; }
+.btn.on { background:#4a7a4a; }
+.board { width:520px; height:520px; display:grid; grid-template-columns:repeat(8,65px); grid-template-rows:repeat(8,65px); border:3px solid #5d4037; border-radius:4px; overflow:hidden; }
+.cell { width:65px; height:65px; display:flex; align-items:center; justify-content:center; position:relative; }
 .cell.light { background:#f0d9b5; }
 .cell.dark { background:#b58863; }
 .cell.selected { background:#f7ec74 !important; }
 .cell.last { background:#dacb5a !important; }
 .cell.can-move::after { content:''; position:absolute; width:28%; height:28%; border-radius:50%; background:rgba(0,0,0,0.3); }
-.cell.can-capture::after { content:''; position:absolute; width:90%; height:90%; border-radius:50%; border:4px solid rgba(255,80,80,0.7); }
-.piece { width:80%; height:80%; }
-.piece svg { width:100%; height:100%; display:block; }
-.history { width:100%; max-width:500px; background:#444; padding:10px; border-radius:8px; font-family:monospace; font-size:12px; max-height:100px; overflow-y:auto; color:#ffe082; }
-.game-over { width:100%; max-width:500px; background:#5a4a2a; color:#ffe082; padding:10px; border-radius:8px; text-align:center; font-weight:700; display:none; }
+.cell.can-capture::after { content:''; position:absolute; width:90%; height:90%; border-radius:50%; border:4px solid rgba(255,80,80,0.7); box-sizing:border-box; }
+.piece { width:52px; height:52px; }
+.history { width:520px; max-width:95vw; background:#444; padding:10px; border-radius:8px; font-family:monospace; font-size:12px; max-height:100px; overflow-y:auto; color:#ffe082; }
+.game-over { width:520px; max-width:95vw; background:#5a4a2a; color:#ffe082; padding:10px; border-radius:8px; text-align:center; font-weight:700; display:none; }
 .game-over.show { display:block; }
 .promo { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; z-index:100; }
 .promo.show { display:flex; }
 .promo-box { background:#444; padding:20px; border-radius:12px; display:flex; gap:12px; }
-.promo-btn { width:60px; height:60px; background:#555; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
-.promo-btn svg { width:80%; height:80%; }
-@media (orientation:landscape) and (max-height:550px) { .board { width:min(90vh,400px); } .history { max-height:60px; } }
+.promo-btn { width:72px; height:72px; background:#555; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+.promo-btn svg { width:56px; height:56px; }
 </style>
 </head>
 <body>
@@ -43,10 +41,10 @@ html,body { width:100%; height:100%; background:#333; font-family:system-ui,-app
             <span class="dot" id="turnDot"></span>
             <span id="turnText">白方</span>
         </div>
-        <div style="display:flex;gap:8px;">
-            <button class="toggle-btn" id="pieceBtn">棋子</button>
-            <button class="toggle-btn" id="toggleBtn">范围</button>
-            <button class="reset" id="resetBtn">重开</button>
+        <div class="btns">
+            <button class="btn on" id="pieceBtn">棋子</button>
+            <button class="btn" id="rangeBtn">范围</button>
+            <button class="btn" id="resetBtn">重开</button>
         </div>
     </div>
     <div class="board" id="board"></div>
@@ -90,59 +88,25 @@ function colorOf(p) { return p ? (p === p.toUpperCase() ? 'w' : 'b') : null; }
 function inBounds(r,c) { return r>=0 && r<8 && c>=0 && c<8; }
 
 function svgPiece(piece) {
-    const isWhite = piece === piece.toUpperCase();
-    const fill = isWhite ? '#ffffff' : '#000000';
-    const stroke = isWhite ? '#000000' : '#ffffff';
+    const color = colorOf(piece);
+    const fill = color==='w' ? '#ffffff' : '#000000';
+    const stroke = color==='w' ? '#000000' : '#ffffff';
     const p = piece.toUpperCase();
-    const h = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">';
-    const t = '</svg>';
-    
-    if(p==='K') return h+`
-        <path fill="${fill}" stroke="${stroke}" stroke-width="1.5" d="M22.5,12 L26,18 L31,18 L27,22 L29,28 L22.5,24 L16,28 L18,22 L14,18 L19,18 Z"/>
-        <rect x="13" y="29" width="19" height="4.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <path d="M12,33.5 L13,39 L32,39 L33,33.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <rect x="20.5" y="3.5" width="4" height="6.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <rect x="18" y="6" width="9" height="1.8" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-    `+t;
-    
-    if(p==='Q') return h+`
-        <path fill="${fill}" stroke="${stroke}" stroke-width="1.5" d="M9,26 C10.5,24.5 12,25 13,25.5 C14,23.5 15.5,24 16.5,25.5 C17.5,24 18.5,23.5 19.5,24 C19.5,22.5 20.5,22 22.5,22 C24.5,22 25.5,22.5 25.5,24 C26.5,23.5 27.5,24 28.5,25.5 C29.5,24 31,23.5 32,25.5 C33,25 34.5,24.5 36,26 L37,14 L33.5,18.5 L30.5,13 L27,18.5 L22.5,10 L18,18.5 L14.5,13 L11.5,18.5 L8,14 Z"/>
-        <path d="M8,27 L37,27 L36,31.5 L9,31.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <rect x="11" y="31.5" width="23" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <path d="M10,35 L11,40 L34,40 L35,35 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-    `+t;
-    
-    if(p==='R') return h+`
-        <path fill="${fill}" stroke="${stroke}" stroke-width="1.5" d="M9,39 L9,17 L13,17 L13,12 L17,12 L17,17 L21,17 L21,12 L25,12 L25,17 L29,17 L29,12 L33,12 L33,17 L36,17 L36,39 Z"/>
-    `+t;
-    
-    if(p==='B') return h+`
-        <path fill="${fill}" stroke="${stroke}" stroke-width="1.5" d="M22.5,8 C19.5,8 18,10 18,12.5 C18,14.5 19.5,16 20.5,16 L20.5,19 C16.5,20 13,23.5 13,28 C13,30 13.5,31.5 14.5,32.5 L13.5,34 L31.5,34 L30.5,32.5 C31.5,31.5 32,30 32,28 C32,23.5 28.5,20 24.5,19 L24.5,16 C25.5,16 27,14.5 27,12.5 C27,10 25.5,8 22.5,8 Z"/>
-        <rect x="12.5" y="34" width="20" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <path d="M11.5,37.5 L12.5,42 L32.5,42 L33.5,37.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-    `+t;
-    
-    if(p==='N') return h+`
-        <path fill="${fill}" stroke="${stroke}" stroke-width="1.5" d="M22,11 C19,12 17,14.5 16.5,18.5 L12.5,19.5 C11,20 10.5,21.5 10.8,23 L9.5,29 L9.5,34 L35.5,34 L34.5,29 C33.5,26 31,24 29,22.5 C28,21 27.5,20.5 27.5,19 L26.5,16.5 L25.5,13 C24.5,11.5 23,11 22,11 Z"/>
-        <rect x="12" y="34" width="21" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <path d="M11,37.5 L12,42 L33,42 L34,37.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-    `+t;
-    
-    if(p==='P') return h+`
-        <circle cx="22.5" cy="15.5" r="6" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <path d="M15,34 C15,30 18.5,28 21,28 L24,28 C26.5,28 30,30 30,34 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <rect x="13.5" y="34" width="18" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-        <path d="M12.5,37.5 L13.5,42 L31.5,42 L32.5,37.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>
-    `+t;
-    
-    return h+t;
+    const head = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">';
+    const tail = '</svg>';
+    if(p==='K') return head+`<path fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" d="M22.5,12 L26,18 L31,18 L27,22 L29,28 L22.5,24 L16,28 L18,22 L14,18 L19,18 Z"/><rect x="13" y="29" width="19" height="4.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><path d="M12,33.5 L13,39 L32,39 L33,33.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><rect x="20.5" y="3.5" width="4" height="6.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><rect x="18" y="6" width="9" height="1.8" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`+tail;
+    if(p==='Q') return head+`<path fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" d="M9,26 C10.5,24.5 12,25 13,25.5 C14,23.5 15.5,24 16.5,25.5 C17.5,24 18.5,23.5 19.5,24 C19.5,22.5 20.5,22 22.5,22 C24.5,22 25.5,22.5 25.5,24 C26.5,23.5 27.5,24 28.5,25.5 C29.5,24 31,23.5 32,25.5 C33,25 34.5,24.5 36,26 L37,14 L33.5,18.5 L30.5,13 L27,18.5 L22.5,10 L18,18.5 L14.5,13 L11.5,18.5 L8,14 Z"/><path d="M8,27 L37,27 L36,31.5 L9,31.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><rect x="11" y="31.5" width="23" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><path d="M10,35 L11,40 L34,40 L35,35 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`+tail;
+    if(p==='R') return head+`<path fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" d="M9,39 L9,17 L13,17 L13,12 L17,12 L17,17 L21,17 L21,12 L25,12 L25,17 L29,17 L29,12 L33,12 L33,17 L36,17 L36,39 Z"/>`+tail;
+    if(p==='B') return head+`<path fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" d="M22.5,8 C19.5,8 18,10 18,12.5 C18,14.5 19.5,16 20.5,16 L20.5,19 C16.5,20 13,23.5 13,28 C13,30 13.5,31.5 14.5,32.5 L13.5,34 L31.5,34 L30.5,32.5 C31.5,31.5 32,30 32,28 C32,23.5 28.5,20 24.5,19 L24.5,16 C25.5,16 27,14.5 27,12.5 C27,10 25.5,8 22.5,8 Z"/><rect x="12.5" y="34" width="20" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><path d="M11.5,37.5 L12.5,42 L32.5,42 L33.5,37.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`+tail;
+    if(p==='N') return head+`<path fill="${fill}" stroke="${stroke}" stroke-width="1.5" stroke-linejoin="round" d="M22,11 C19,12 17,14.5 16.5,18.5 L12.5,19.5 C11,20 10.5,21.5 10.8,23 L9.5,29 L9.5,34 L35.5,34 L34.5,29 C33.5,26 31,24 29,22.5 C28,21 27.5,20.5 27.5,19 L26.5,16.5 L25.5,13 C24.5,11.5 23,11 22,11 Z"/><rect x="12" y="34" width="21" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><path d="M11,37.5 L12,42 L33,42 L34,37.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`+tail;
+    if(p==='P') return head+`<circle cx="22.5" cy="15.5" r="6" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><path d="M15,34 C15,30 18.5,28 21,28 L24,28 C26.5,28 30,30 30,34 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><rect x="13.5" y="34" width="18" height="3.5" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/><path d="M12.5,37.5 L13.5,42 L31.5,42 L32.5,37.5 Z" fill="${fill}" stroke="${stroke}" stroke-width="1.5"/>`+tail;
+    return head+tail;
 }
 
 function pseudoMoves(r,c) {
     const p = board[r][c]; if(!p) return [];
     const color = colorOf(p); const enemy = color==='w'?'b':'w'; const type = p.toUpperCase();
     const moves = [];
-    
     const add = (nr,nc,extra={}) => {
         if(!inBounds(nr,nc)) return false;
         const t = board[nr][nc];
@@ -150,7 +114,6 @@ function pseudoMoves(r,c) {
         moves.push({from:[r,c],to:[nr,nc],piece:p,captured:t,...extra});
         return !t;
     };
-    
     if(type==='P') {
         const dir = color==='w'?-1:1; const startRow = color==='w'?6:1; const promoRow = color==='w'?0:7;
         if(inBounds(r+dir,c) && !board[r+dir][c]) {
@@ -173,31 +136,15 @@ function pseudoMoves(r,c) {
         const dirs = [];
         if(type==='B' || type==='Q') dirs.push([-1,-1],[-1,1],[1,-1],[1,1]);
         if(type==='R' || type==='Q') dirs.push([-1,0],[1,0],[0,-1],[0,1]);
-        for(const [dr,dc] of dirs) {
-            let nr=r+dr, nc=c+dc;
-            while(inBounds(nr,nc)) {
-                const t=board[nr][nc];
-                if(!t) moves.push({from:[r,c],to:[nr,nc],piece:p,captured:null});
-                else { if(colorOf(t)!==color) moves.push({from:[r,c],to:[nr,nc],piece:p,captured:t}); break; }
-                nr+=dr; nc+=dc;
-            }
-        }
+        for(const [dr,dc] of dirs) { let nr=r+dr,nc=c+dc; while(inBounds(nr,nc)){ const t=board[nr][nc]; if(!t) moves.push({from:[r,c],to:[nr,nc],piece:p,captured:null}); else { if(colorOf(t)!==color) moves.push({from:[r,c],to:[nr,nc],piece:p,captured:t}); break; } nr+=dr; nc+=dc; }}
     } else if(type==='K') {
         for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) if(dr||dc) add(r+dr,c+dc);
-        const row = color==='w'?7:0;
+        const row=color==='w'?7:0;
         if(r===row && c===4) {
-            const canK = color==='w'?castling.wK:castling.bK;
-            const canQ = color==='w'?castling.wQ:castling.bQ;
-            if(canK && !board[row][5] && !board[row][6] && board[row][7] && board[row][7].toUpperCase()==='R') {
-                if(!isSquareAttacked(row,4,enemy) && !isSquareAttacked(row,5,enemy) && !isSquareAttacked(row,6,enemy)) {
-                    moves.push({from:[r,c],to:[row,6],piece:p,captured:null,castle:'K'});
-                }
-            }
-            if(canQ && !board[row][1] && !board[row][2] && !board[row][3] && board[row][0] && board[row][0].toUpperCase()==='R') {
-                if(!isSquareAttacked(row,4,enemy) && !isSquareAttacked(row,3,enemy) && !isSquareAttacked(row,2,enemy)) {
-                    moves.push({from:[r,c],to:[row,2],piece:p,captured:null,castle:'Q'});
-                }
-            }
+            const canK=color==='w'?castling.wK:castling.bK;
+            const canQ=color==='w'?castling.wQ:castling.bQ;
+            if(canK && !board[row][5] && !board[row][6] && board[row][7] && board[row][7].toUpperCase()==='R' && !isSquareAttacked(row,4,enemy) && !isSquareAttacked(row,5,enemy) && !isSquareAttacked(row,6,enemy)) moves.push({from:[r,c],to:[row,6],piece:p,captured:null,castle:'K'});
+            if(canQ && !board[row][1] && !board[row][2] && !board[row][3] && board[row][0] && board[row][0].toUpperCase()==='R' && !isSquareAttacked(row,4,enemy) && !isSquareAttacked(row,3,enemy) && !isSquareAttacked(row,2,enemy)) moves.push({from:[r,c],to:[row,2],piece:p,captured:null,castle:'Q'});
         }
     }
     return moves;
@@ -205,98 +152,49 @@ function pseudoMoves(r,c) {
 
 function isSquareAttacked(r,c,byColor) {
     const dir = byColor==='w'?1:-1;
-    for(const dc of [-1,1]) {
-        const pr=r+dir, pc=c+dc;
-        if(inBounds(pr,pc)) { const p=board[pr][pc]; if(p && colorOf(p)===byColor && p.toUpperCase()==='P') return true; }
-    }
-    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>{
-        const nr=r+dr, nc=c+dc;
-        if(inBounds(nr,nc)) { const p=board[nr][nc]; if(p && colorOf(p)===byColor && p.toUpperCase()==='N') return true; }
-    });
-    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{
-        let nr=r+dr, nc=c+dc;
-        while(inBounds(nr,nc)) {
-            const p=board[nr][nc];
-            if(p) { if(colorOf(p)===byColor && (p.toUpperCase()==='R'||p.toUpperCase()==='Q')) return true; break; }
-            nr+=dr; nc+=dc;
-        }
-    });
-    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>{
-        let nr=r+dr, nc=c+dc;
-        while(inBounds(nr,nc)) {
-            const p=board[nr][nc];
-            if(p) { if(colorOf(p)===byColor && (p.toUpperCase()==='B'||p.toUpperCase()==='Q')) return true; break; }
-            nr+=dr; nc+=dc;
-        }
-    });
-    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) {
-        if(!dr && !dc) continue;
-        const nr=r+dr, nc=c+dc;
-        if(inBounds(nr,nc)) { const p=board[nr][nc]; if(p && colorOf(p)===byColor && p.toUpperCase()==='K') return true; }
-    }
+    for(const dc of [-1,1]) { const pr=r+dir,pc=c+dc; if(inBounds(pr,pc)){ const p=board[pr][pc]; if(p && colorOf(p)===byColor && p.toUpperCase()==='P') return true; } }
+    [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(([dr,dc])=>{ const nr=r+dr,nc=c+dc; if(inBounds(nr,nc)){ const p=board[nr][nc]; if(p && colorOf(p)===byColor && p.toUpperCase()==='N') return true; } });
+    [[-1,0],[1,0],[0,-1],[0,1]].forEach(([dr,dc])=>{ let nr=r+dr,nc=c+dc; while(inBounds(nr,nc)){ const p=board[nr][nc]; if(p){ if(colorOf(p)===byColor && (p.toUpperCase()==='R'||p.toUpperCase()==='Q')) return true; break; } nr+=dr; nc+=dc; } });
+    [[-1,-1],[-1,1],[1,-1],[1,1]].forEach(([dr,dc])=>{ let nr=r+dr,nc=c+dc; while(inBounds(nr,nc)){ const p=board[nr][nc]; if(p){ if(colorOf(p)===byColor && (p.toUpperCase()==='B'||p.toUpperCase()==='Q')) return true; break; } nr+=dr; nc+=dc; } });
+    for(let dr=-1;dr<=1;dr++) for(let dc=-1;dc<=1;dc++) { if(!dr && !dc) continue; const nr=r+dr,nc=c+dc; if(inBounds(nr,nc)){ const p=board[nr][nc]; if(p && colorOf(p)===byColor && p.toUpperCase()==='K') return true; } }
     return false;
 }
 
 function inCheck(color) {
-    for(let r=0;r<8;r++) for(let c=0;c<8;c++) {
-        const p=board[r][c];
-        if(p && p.toUpperCase()==='K' && colorOf(p)===color) return isSquareAttacked(r,c,color==='w'?'b':'w');
-    }
-    return false;
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++) { const p=board[r][c]; if(p && p.toUpperCase()==='K' && colorOf(p)===color) return isSquareAttacked(r,c,color==='w'?'b':'w'); } return false;
 }
 
 function legalMoves(r,c) {
     const p=board[r][c]; if(!p || colorOf(p)!==turn) return [];
-    const pseudo = pseudoMoves(r,c);
-    const legal = [];
+    const pseudo = pseudoMoves(r,c); const legal=[];
     for(const m of pseudo) {
-        const saved = board.map(row=>row.slice());
-        const savedEP = enPassant;
-        const savedCast = {...castling};
-        applyMove(m,true);
-        if(!inCheck(turn)) legal.push(m);
+        const saved = board.map(row=>row.slice()); const savedEP = enPassant; const savedCast = {...castling};
+        applyMove(m,true); if(!inCheck(turn)) legal.push(m);
         board = saved; enPassant = savedEP; castling = savedCast;
     }
     return legal;
 }
 
 function allLegalMoves(color) {
-    const savedTurn = turn; turn = color;
-    const all = [];
-    for(let r=0;r<8;r++) for(let c=0;c<8;c++) {
-        if(board[r][c] && colorOf(board[r][c])===color) all.push(...legalMoves(r,c));
-    }
+    const savedTurn = turn; turn = color; const all = [];
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++) { if(board[r][c] && colorOf(board[r][c])===color) all.push(...legalMoves(r,c)); }
     turn = savedTurn; return all;
 }
 
 function applyMove(m,silent) {
     const [fr,fc] = m.from; const [tr,tc] = m.to; const p = board[fr][fc]; const color = colorOf(p);
-    board[fr][fc] = '';
-    if(m.enPassant) board[fr][tc] = '';
-    board[tr][tc] = m.promotion || p;
-    
-    if(m.castle==='K') { board[tr][5] = board[tr][7]; board[tr][7] = ''; }
-    else if(m.castle==='Q') { board[tr][3] = board[tr][0]; board[tr][0] = ''; }
-    
-    if(p.toUpperCase()==='K') { if(color==='w') { castling.wK=false; castling.wQ=false; } else { castling.bK=false; castling.bQ=false; } }
-    if(p.toUpperCase()==='R') {
-        if(color==='w' && fr===7) { if(fc===0) castling.wQ=false; if(fc===7) castling.wK=false; }
-        if(color==='b' && fr===0) { if(fc===0) castling.bQ=false; if(fc===7) castling.bK=false; }
-    }
-    if(m.captured && m.captured.toUpperCase()==='R') {
-        const enemy = color==='w'?'b':'w';
-        if(enemy==='w' && tr===7) { if(tc===0) castling.wQ=false; if(tc===7) castling.wK=false; }
-        if(enemy==='b' && tr===0) { if(tc===0) castling.bQ=false; if(tc===7) castling.bK=false; }
-    }
-    
+    board[fr][fc] = ''; if(m.enPassant) board[fr][tc] = ''; board[tr][tc] = m.promotion || p;
+    if(m.castle==='K'){ board[tr][5]=board[tr][7]; board[tr][7]=''; } else if(m.castle==='Q'){ board[tr][3]=board[tr][0]; board[tr][0]=''; }
+    if(p.toUpperCase()==='K'){ if(color==='w'){castling.wK=false;castling.wQ=false;} else {castling.bK=false;castling.bQ=false;} }
+    if(p.toUpperCase()==='R'){ if(color==='w' && fr===7){ if(fc===0) castling.wQ=false; if(fc===7) castling.wK=false; } if(color==='b' && fr===0){ if(fc===0) castling.bQ=false; if(fc===7) castling.bK=false; } }
+    if(m.captured && m.captured.toUpperCase()==='R'){ const enemy=color==='w'?'b':'w'; if(enemy==='w' && tr===7){ if(tc===0) castling.wQ=false; if(tc===7) castling.wK=false; } if(enemy==='b' && tr===0){ if(tc===0) castling.bQ=false; if(tc===7) castling.bK=false; } }
     if(m.doubleStep) enPassant = [(fr+tr)/2, tc]; else enPassant = null;
-    if(!silent) { turn = color==='w'?'b':'w'; lastMove = {from:m.from, to:m.to}; }
+    if(!silent){ turn = color==='w'?'b':'w'; lastMove = {from:m.from,to:m.to}; }
 }
 
 function notation(m) {
     if(m.castle==='K') return 'O-O'; if(m.castle==='Q') return 'O-O-O';
-    const piece = m.piece.toUpperCase();
-    const pieceStr = piece==='P'?'':piece;
+    const piece = m.piece.toUpperCase(); const pieceStr = piece==='P'?'':piece;
     const cap = m.captured || m.enPassant ? 'x' : '';
     const dest = FILES[m.to[1]] + (8 - m.to[0]);
     const promo = m.promotion ? '=' + m.promotion.toUpperCase() : '';
@@ -307,82 +205,51 @@ function notation(m) {
 function render() {
     const boardEl = document.getElementById('board');
     boardEl.innerHTML = '';
-    
-    for(let r=0;r<8;r++) {
-        for(let c=0;c<8;c++) {
-            const cell = document.createElement('div');
-            cell.className = 'cell ' + ((r+c)%2===0 ? 'light' : 'dark');
-            
-            if(selected && selected[0]===r && selected[1]===c) cell.classList.add('selected');
-            if(lastMove && ((lastMove.from[0]===r && lastMove.from[1]===c) || (lastMove.to[0]===r && lastMove.to[1]===c))) cell.classList.add('last');
-            
-            const vm = validMoves.find(m=>m.to[0]===r && m.to[1]===c);
-            if(vm && showRange) { if(vm.captured || vm.enPassant) cell.classList.add('can-capture'); else cell.classList.add('can-move'); }
-            
-            if(!gameOver && inCheck(turn)) {
-                for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++) {
-                    const p=board[rr][cc];
-                    if(p && p.toUpperCase()==='K' && colorOf(p)===turn && rr===r && cc===c) cell.classList.add('selected');
-                }
-            }
-            
-            const piece = board[r][c];
-            if(piece && showPieces) {
-                const pieceDiv = document.createElement('div');
-                pieceDiv.className = 'piece';
-                pieceDiv.innerHTML = svgPiece(piece);
-                cell.appendChild(pieceDiv);
-            }
-            
-            cell.addEventListener('click',()=>onCellClick(r,c));
-            boardEl.appendChild(cell);
+    for(let r=0;r<8;r++) for(let c=0;c<8;c++) {
+        const cell = document.createElement('div');
+        cell.className = 'cell ' + ((r+c)%2===0 ? 'light' : 'dark');
+        if(selected && selected[0]===r && selected[1]===c) cell.classList.add('selected');
+        if(lastMove && ((lastMove.from[0]===r && lastMove.from[1]===c) || (lastMove.to[0]===r && lastMove.to[1]===c))) cell.classList.add('last');
+        const vm = validMoves.find(m=>m.to[0]===r && m.to[1]===c);
+        if(vm && showRange) { if(vm.captured || vm.enPassant) cell.classList.add('can-capture'); else cell.classList.add('can-move'); }
+        if(!gameOver && inCheck(turn)) {
+            for(let rr=0;rr<8;rr++) for(let cc=0;cc<8;cc++) { const pp=board[rr][cc]; if(pp && pp.toUpperCase()==='K' && colorOf(pp)===turn && rr===r && cc===c) cell.classList.add('selected'); }
         }
+        const piece = board[r][c];
+        if(piece && showPieces) {
+            const pd = document.createElement('div');
+            pd.className = 'piece';
+            pd.innerHTML = svgPiece(piece);
+            cell.appendChild(pd);
+        }
+        cell.addEventListener('click',()=>onCellClick(r,c));
+        boardEl.appendChild(cell);
     }
-    
-    document.getElementById('turnDot').className = 'dot' + (turn==='b'?' black':'');
-    document.getElementById('turnText').textContent = turn==='w'?'白方':'黑方';
-    
-    const historyEl = document.getElementById('history');
-    historyEl.innerHTML = '';
-    for(let i=0;i<history.length;i+=2) {
-        const num = (i/2)+1;
-        const w = history[i] || '';
-        const b = history[i+1] || '';
-        historyEl.innerHTML += `${num}. ${w} ${b}<br>`;
-    }
+    document.getElementById('turnDot').className = 'dot' + (turn==='b' ? ' black' : '');
+    document.getElementById('turnText').textContent = turn==='w' ? '白方' : '黑方';
+    const hel = document.getElementById('history');
+    hel.innerHTML = '';
+    for(let i=0;i<history.length;i+=2) { const num=(i/2)+1; const w=history[i]||''; const b=history[i+1]||''; hel.innerHTML += `${num}. ${w} ${b}<br>`; }
 }
 
 function onCellClick(r,c) {
     if(gameOver) return;
-    
     if(selected) {
         const m = validMoves.find(mv=>mv.to[0]===r && mv.to[1]===c);
-        if(m) {
-            if(m.promotion) { showPromo(m); return; }
-            doMove(m); return;
-        }
-        if(board[r][c] && colorOf(board[r][c])===turn) { selected=[r,c]; validMoves=legalMoves(r,c); render(); return; }
+        if(m) { if(m.promotion){ showPromo(m); return; } doMove(m); return; }
+        if(board[r][c] && colorOf(board[r][c])===turn){ selected=[r,c]; validMoves=legalMoves(r,c); render(); return; }
         selected=null; validMoves=[]; render(); return;
     }
-    
     if(board[r][c] && colorOf(board[r][c])===turn) { selected=[r,c]; validMoves=legalMoves(r,c); render(); }
 }
 
 function doMove(m) {
     applyMove(m,false);
-    let note = notation(m);
-    const opp = turn;
-    if(inCheck(opp)) {
-        const moves = allLegalMoves(opp);
-        if(moves.length===0) { note+='#'; gameOver=true; document.getElementById('gameOver').textContent=(opp==='w'?'黑方':'白方')+'将杀获胜！'; }
-        else note+='+';
-    } else {
-        const moves = allLegalMoves(opp);
-        if(moves.length===0) { gameOver=true; document.getElementById('gameOver').textContent='逼和'; }
-    }
+    let note = notation(m); const opp = turn;
+    if(inCheck(opp)) { const moves=allLegalMoves(opp); if(moves.length===0){ note+='#'; gameOver=true; document.getElementById('gameOver').textContent=(opp==='w'?'黑方':'白方')+'将杀获胜！'; } else note+='+'; }
+    else { const moves=allLegalMoves(opp); if(moves.length===0){ gameOver=true; document.getElementById('gameOver').textContent='逼和'; } }
     if(gameOver) document.getElementById('gameOver').classList.add('show');
-    history.push(note);
-    selected=null; validMoves=[]; render();
+    history.push(note); selected=null; validMoves=[]; render();
 }
 
 function showPromo(m) {
@@ -393,38 +260,17 @@ function showPromo(m) {
         const btn = document.createElement('div');
         btn.className = 'promo-btn';
         btn.innerHTML = svgPiece(turn==='w'?ch:ch.toLowerCase());
-        btn.onclick = () => {
-            m.promotion = turn==='w'?ch:ch.toLowerCase();
-            promo.classList.remove('show');
-            doMove(m);
-        };
+        btn.onclick = () => { m.promotion = turn==='w'?ch:ch.toLowerCase(); promo.classList.remove('show'); doMove(m); };
         box.appendChild(btn);
     });
     promo.classList.add('show');
 }
 
-document.getElementById('pieceBtn').addEventListener('click',(e)=>{
-    showPieces = !showPieces;
-    e.target.classList.toggle('on', showPieces);
-    render();
-});
+document.getElementById('pieceBtn').addEventListener('click',e=>{ showPieces=!showPieces; e.target.classList.toggle('on',showPieces); render(); });
+document.getElementById('rangeBtn').addEventListener('click',e=>{ showRange=!showRange; e.target.classList.toggle('on',showRange); render(); });
+document.getElementById('resetBtn').addEventListener('click',()=>{ initBoard(); document.getElementById('gameOver').classList.remove('show'); render(); });
 
-document.getElementById('toggleBtn').addEventListener('click',(e)=>{
-    showRange = !showRange;
-    e.target.classList.toggle('on', showRange);
-    render();
-});
-
-document.getElementById('pieceBtn').classList.add('on');
-
-document.getElementById('resetBtn').addEventListener('click',()=>{
-    initBoard();
-    document.getElementById('gameOver').classList.remove('show');
-    render();
-});
-
-initBoard();
-render();
+initBoard(); render();
 </script>
 </body>
 </html>
