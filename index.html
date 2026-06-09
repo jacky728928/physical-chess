@@ -24,6 +24,7 @@ html,body { width:100%; height:100%; background:#333; font-family:system-ui,-app
 .cell.can-move::after { content:''; position:absolute; width:28%; height:28%; border-radius:50%; background:rgba(0,0,0,0.3); }
 .cell.can-capture::after { content:''; position:absolute; width:90%; height:90%; border-radius:50%; border:4px solid rgba(255,80,80,0.7); }
 .piece { width:80%; height:80%; }
+.piece svg { width:100%; height:100%; display:block; }
 .history { width:100%; max-width:500px; background:#444; padding:10px; border-radius:8px; font-family:monospace; font-size:12px; max-height:100px; overflow-y:auto; color:#ffe082; }
 .game-over { width:100%; max-width:500px; background:#5a4a2a; color:#ffe082; padding:10px; border-radius:8px; text-align:center; font-weight:700; display:none; }
 .game-over.show { display:block; }
@@ -93,7 +94,7 @@ function svgPiece(piece) {
     const fill = isWhite ? '#ffffff' : '#000000';
     const stroke = isWhite ? '#000000' : '#ffffff';
     const p = piece.toUpperCase();
-    const h = '<svg viewBox="0 0 45 45">';
+    const h = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 45 45">';
     const t = '</svg>';
     
     if(p==='K') return h+`
