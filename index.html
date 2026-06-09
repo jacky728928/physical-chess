@@ -327,10 +327,10 @@ function render() {
             
             const piece = board[r][c];
             if(piece && showPieces) {
-                const svg = document.createElement('svg');
-                svg.className = 'piece';
-                svg.innerHTML = svgPiece(piece).replace('<svg viewBox="0 0 45 45">','').replace('</svg>','');
-                cell.appendChild(svg);
+                const pieceDiv = document.createElement('div');
+                pieceDiv.className = 'piece';
+                pieceDiv.innerHTML = svgPiece(piece);
+                cell.appendChild(pieceDiv);
             }
             
             cell.addEventListener('click',()=>onCellClick(r,c));
@@ -391,9 +391,7 @@ function showPromo(m) {
     ['Q','R','B','N'].forEach(ch=>{
         const btn = document.createElement('div');
         btn.className = 'promo-btn';
-        const svg = document.createElement('svg');
-        svg.innerHTML = svgPiece(m.promotion ? m.promotion : (turn==='w'?ch:ch.toLowerCase())).replace('<svg viewBox="0 0 45 45">','').replace('</svg>','');
-        btn.appendChild(svg);
+        btn.innerHTML = svgPiece(turn==='w'?ch:ch.toLowerCase());
         btn.onclick = () => {
             m.promotion = turn==='w'?ch:ch.toLowerCase();
             promo.classList.remove('show');
